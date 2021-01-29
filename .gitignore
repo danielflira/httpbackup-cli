@@ -2,3 +2,5 @@ node_modules/
 .nyc_output/
 store/
 *.exe
+.vscode/
+console_error.log
