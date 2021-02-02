@@ -25,6 +25,16 @@ async function walk(filePath = "./") {
     return files
 }
 
+function filterRegex(fileList, regex) {
+    return fileList.filter(file => {
+            if ( regex.test(file) ) {
+                console.log(`ignored by regex ${file}`)
+                return false;
+            }
+        return true;
+    });
+}
+
 async function checkFileHash(file) {
     let fileStream = fs.createReadStream(file);
     let sha512Temp = Crypto.createHash("sha512");
@@ -47,8 +57,6 @@ async function checkFileHash(file) {
 }
 
 async function sendToServer(serverURL, entity, file) {
-    console.log(`sending ${file}`)
-
     const pipeline = promisify(stream.pipeline);
 
     serverURL =  entity && `${serverURL}/store/${entity}` || `${serverURL}/store`;
@@ -56,9 +64,11 @@ async function sendToServer(serverURL, entity, file) {
     try {
         await pipeline(
             fs.createReadStream(file),
-            got.stream.post(`${serverURL}/${file}`));
+            got.stream.post(`${serverURL}/${escape(file)}`));
+        console.log(`succeed to send ${file}`)
         return true;
     } catch(e) {
+        console.log(`failed to send ${file}`);
         return false;
     }
 }
@@ -84,56 +94,47 @@ async function main(params) {
 
     for ( let i = 0; i < path.length; i++ ) {
         console.log(`backuping ${path[i]} to ${server} ${entity ? "on entity " + entity : ""}`)
+        
+        let files = await walk(path[i]);
 
-        let files = (await walk(path[i])).filter(file => {
-            for ( let j = 0; j < ignoreRE.length; j++) {
-                if ( ignoreRE[j].test(file) ) {
-                    return false;
-                }
-            }
-            return true;
-        });
-
-        if ( modified ) {
-            modified = new Date() - (modified * 1000);
-        } else {
-            modified = 0;
+        for ( let j = 0; j < ignoreRE.length; j++) {
+            files = filterRegex(files, ignoreRE[j]);
         }
 
-        let newer = [];
-        for ( let i = 0; i < files.length; i++ ) {
-            let stat = await fs.promises.stat(files[i]);
+        let now = new Date();
 
-            if ( stat.mtime.getTime() > modified ) {
-                newer.push(files[i]);
-            }
-        }
-
-        files = newer;
         for ( let j = 0; j < files.length; j++) {
             let sha512 = null;
             let response = null;
 
+            if ( modified ) {
+                let stat = await fs.promises.stat(files[j]);
+
+                if ( (now.getTime() - stat.mtime.getTime()) > (modified * 1000) ) {
+                    console.log(`ignored by modified ${files[j]}`);
+                    continue
+                }
+            }
+
             try {
                 sha512 = await checkFileHash(files[j]);
             } catch(e) {
-                console.log(`[ERROR] to calc hash ${files[j]}`);
+                console.log(`failed to calc hash ${files[j]}`);
                 continue;
             }
 
             try {
                 response = await got(`${server}/hash/${sha512}`).json();
+
+                if (response.exists) {
+                    console.log(`ignored by hash ${files[j]} (already exists)`);
+                    continue;
+                }
             } catch(e) {
-                console.log(`[ERROR] to check hash on server ${files[j]}`);
+                console.log(`failed to check hash on server ${files[j]}`);
                 continue;
             }
 
-            if (response.exists) {
-                console.log(`ignoring ${files[j]} (already exists)`);
-                continue;
-            }
-
-            console.log(`preparing ${files[j]}`)
             !dryRun && await sendToServerWithRetry(server, entity, files[j], retries);
         }
     }

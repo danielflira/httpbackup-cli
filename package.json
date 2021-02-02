@@ -1,7 +1,7 @@
 {
   "name": "httpbackup-cli",
   "version": "1.0.0",
-  "description": "httpbackup-cli ==========",
+  "description": "httpbackup-cli",
   "main": "index.js",
   "dependencies": {
     "commander": "^6.2.1",
@@ -11,7 +11,8 @@
     "nexe": "^3.3.7"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bin-win": "rm main.exe && ./node_modules/.bin/nexe --target windows-x64 src/main.js"
   },
   "repository": {
     "type": "git",
