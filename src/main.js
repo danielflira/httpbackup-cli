@@ -115,7 +115,13 @@ async function main(params) {
             let response = null;
 
             if ( modified ) {
-                let stat = await fs.promises.stat(files[j]);
+                try {
+                    let stat = await fs.promises.stat(files[j]);
+                } catch(e) {
+                    console.log(`failed to get stat ${files[j]}`);
+                    console.log(e);
+                    continue
+                }
 
                 if ( (now.getTime() - stat.mtime.getTime()) > (modified * 1000) ) {
                     console.log(`ignored by modified ${files[j]}`);
