@@ -28,7 +28,7 @@ async function walk(filePath = "./") {
 function filterRegex(fileList, regex) {
     return fileList.filter(file => {
             if ( regex.test(file) ) {
-                console.log(`ignored by regex ${file}`)
+                console.log(`ignored by regex ${regex} - ${file}`)
                 return false;
             }
         return true;
@@ -56,19 +56,26 @@ async function checkFileHash(file) {
 
 }
 
+function pathNormalize(path) {
+    return path.replace(/\\/g, "/");
+}
+
 async function sendToServer(serverURL, entity, file) {
     const pipeline = promisify(stream.pipeline);
+    let newFile = escape(pathNormalize(file));
 
     serverURL =  entity && `${serverURL}/store/${entity}` || `${serverURL}/store`;
 
+    console.log(`sending ${file}`);
     try {
         await pipeline(
             fs.createReadStream(file),
-            got.stream.post(`${serverURL}/${escape(file)}`));
+            got.stream.post(`${serverURL}/${newFile}`));
         console.log(`succeed to send ${file}`)
         return true;
     } catch(e) {
         console.log(`failed to send ${file}`);
+        console.log(e);
         return false;
     }
 }
@@ -120,6 +127,7 @@ async function main(params) {
                 sha512 = await checkFileHash(files[j]);
             } catch(e) {
                 console.log(`failed to calc hash ${files[j]}`);
+                console.log(e);
                 continue;
             }
 
@@ -132,6 +140,7 @@ async function main(params) {
                 }
             } catch(e) {
                 console.log(`failed to check hash on server ${files[j]}`);
+                console.log(e);
                 continue;
             }
 
