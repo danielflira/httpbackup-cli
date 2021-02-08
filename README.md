@@ -18,16 +18,16 @@ Enviando arquivos e ignorando com regex:
 $ node src/main.js --server http://localhost:3000 --path ${PWD} --ignore '.git/'
 ```
 
-Enviando arquivos modificados nos últimos 60 segundos:
+Enviando arquivos modificados nos últimos dois dias:
 
 ```
-$ node src/main.js --server http://localhost:3000 --path ${PWD}  --modified 60
+$ node src/main.js --server http://localhost:3000 --path ${PWD}  --modified 2880
 ```
 
 Simulando listagem sem o envio real dos arquivos
 
 ```
-$ node src/main.js --server http://localhost:3000 --path ${PWD}  --modified 60 --dry-run
+$ node src/main.js --server http://localhost:3000 --path ${PWD}  --modified 2880 --dry-run
 ```
 
 ## Gerando binário

@@ -194,7 +194,8 @@ async function main(params) {
 
         resume.processed = i+1;
 
-        if ( Date.now() - resume.lastFileTime > 600000 ) {
+        if ( Date.now() - resume.lastFileTime > 60000 ) {
+            resume.lastFileTime = Date.now();
             printResume(resume);
         }
 
